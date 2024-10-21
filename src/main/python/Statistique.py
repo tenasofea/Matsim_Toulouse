@@ -55,7 +55,6 @@
 # heure_debut_simulation = agents_df['Temps'].min() / 3600  
 # heure_fin_simulation = agents_df['Temps'].max() / 3600  
 
-# # freq_trajets_par_agent = agents_df.groupby('AgentId').size()
 
 # # heure_debut_trajet = agents_df.groupby('AgentId')['Temps'].min()
 
@@ -116,87 +115,49 @@ from datetime import datetime
 agents_df = pd.read_csv("agent_positions_motif.csv")
 persons_df = pd.read_csv("C:/Users/User/IdeaProjects/matsim-example-project-modified/simulation_output_toulouse/output_persons.csv.gz", sep=';')
 
-# 1. Population active
+# Population active et non active
 population_active = agents_df['AgentId'].nunique()
 population_nonactive = persons_df['person'].nunique()
 
-# 2. Nombre de points par trajet (agent)
+# Nombre de points par trajet (agent)
 points_par_trajet = agents_df.groupby('AgentId')['x'].count()
 
-# 3. Durée moyenne des trajets
-# Ici, "Temps_minute" représente déjà le temps en minutes. On calcule la différence entre le temps max et le temps min pour chaque agent.
+# Duree moyenne des trajets
 duree_trajet_par_agent = agents_df.groupby('AgentId')['Temps_minute'].apply(lambda x: x.max() - x.min())
 duree_moyenne_trajet = duree_trajet_par_agent.mean()
 
-# 4. Nombre de trajets domicile-travail (Motif_Orig = "home", Motif_Dest = "work")
+# Nombre de trajets domicile-travail (Motif_Orig = "home", Motif_Dest = "work")
 domicile_travail_trajets = agents_df[(agents_df['Motif_Orig'] == 'home') & (agents_df['Motif_Dest'] == 'work')]['AgentId'].nunique()
 
-# 5. Nombre total de trajets (chaque AgentId est un trajet)
+# Nombre total de trajets (chaque AgentId est un trajet)
 total_trajets = agents_df['AgentId'].nunique()
 
-# 6. Nombre moyen de points par trajet
+# Nombre moyen de points par trajet
 moyenne_points_par_trajet = points_par_trajet.mean()
 
-# 7. Nombre minimum et maximum de points par trajet
+# Nombre minimum et maximum de points par trajet
 # smallest number of points recorded for a single trip (agent)
 min_points_par_trajet = points_par_trajet.min()
 # largest number of points recorded for a single trip (agent)
 max_points_par_trajet = points_par_trajet.max()
 
-# 8. Distribution des motifs (combinaisons de Motif_Orig et Motif_Dest)
+# Distribution points des motifs (combinaisons de Motif_Orig et Motif_Dest)
 distribution_motifs_points = agents_df.groupby(['Motif_Orig', 'Motif_Dest']).size()
 
-# 9. Nombre de trajets par motif_orig et motif_dest (nouvelle statistique pour trips)
+# Nombre de trajets par motif_orig et motif_dest (nouvelle statistique pour trips)
 # Cette statistique compte le nombre de trajets distincts pour chaque combinaison de Motif_Orig et Motif_Dest
 nombre_trajets_par_motif = agents_df.groupby(['Motif_Orig', 'Motif_Dest'])['AgentId'].nunique().reset_index()
 nombre_trajets_par_motif.columns = ['Motif_Orig', 'Motif_Dest', 'Nombre_Trajets']
 
-# 9. Distance totale parcourue par agent (calculée entre les points successifs pour chaque agent)
-# Corrected version to calculate the distance between points
-
-def distance(x1, y1, x2, y2):
-    return np.sqrt((x2 - x1)**2 + (y2 - y1)**2)
-
-# Apply the shift on the columns 'x' and 'y' to get the previous values
-agents_df['x_shift'] = agents_df.groupby('AgentId')['x'].shift()
-agents_df['y_shift'] = agents_df.groupby('AgentId')['y'].shift()
-
-# Calculate the distance using the current and shifted coordinates
-agents_df['distance'] = distance(agents_df['x'], agents_df['y'], agents_df['x_shift'], agents_df['y_shift'])
-
-# Fill any NaN values that may result from the shift operation (e.g., for the first row of each group)
-agents_df['distance'] = agents_df['distance'].fillna(0)
-
-
-# Distance totale parcourue par chaque agent
-distance_par_agent = agents_df.groupby('AgentId')['distance'].sum()
-
-# 10. Fréquence des trajets par agent
-freq_trajets_par_agent = agents_df.groupby('AgentId').size()
-
-# 11. Heure de début des trajets
-heure_debut_trajet = agents_df.groupby('AgentId')['Temps_minute'].min()
-
-# 12. Temps d'attente aux intersections ou arrêts (si l'agent reste au même endroit pour un certain temps)
-agents_df['temps_arret'] = agents_df.groupby('AgentId')['Temps_minute'].diff().where((agents_df['x'] == agents_df['x'].shift()) & (agents_df['y'] == agents_df['y'].shift()))
-temps_total_arret_par_agent = agents_df.groupby('AgentId')['temps_arret'].sum()
-
-# 13. Pourcentage de trajets multimodaux (si applicable, mais ici Motif_Orig et Motif_Dest sont déjà définis, donc non pertinent dans ce cas)
-
-# 14. Evolution du trafic au fil du temps (grouper par minute)
+# Evolution du trafic au fil du temps (grouper par minute)
 trafic_par_minute = agents_df.groupby('Temps_minute')['AgentId'].nunique()
 
-# 15. Heure de début et heure de fin de la simulation
-heure_debut_simulation = agents_df['Temps_minute'].min()  # En minutes
-heure_fin_simulation = agents_df['Temps_minute'].max()  # En minutes
+# Heure de debut et heure de fin de la simulation
+heure_debut_simulation = agents_df['Temps_minute'].min()  
+heure_fin_simulation = agents_df['Temps_minute'].max()  
 
-# Générer un nom de fichier avec horodatage si le fichier existe déjà
 filename = "resultats_statistiques.csv"
-if os.path.exists(filename):
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"resultats_statistiques.csv"
 
-# Imprimer toutes les statistiques calculées
 print("\n--- Statistiques sur Toulouse---")
 print(f"Population active : {population_active}")
 print(f"Population non active : {population_nonactive}")
@@ -206,10 +167,7 @@ print(f"Duree moyenne des trajets (minutes) : {duree_moyenne_trajet:.2f}")
 print(f"Nombre moyen de points par trajet : {moyenne_points_par_trajet:.2f}")
 print(f"Nombre minimum de points par trajet : {min_points_par_trajet}")
 print(f"Nombre maximum de points par trajet : {max_points_par_trajet}")
-print(f"Distance totale parcourue par agent (moyenne) : {distance_par_agent.mean():.2f} unites")
-print(f"Frequence moyenne des trajets par agent : {freq_trajets_par_agent.mean():.2f}")
-print(f"Temps d'attente moyen par agent (minutes) : {temps_total_arret_par_agent.mean():.2f}")
-print(f"Heure de debut de la simulation (minutes) : {heure_debut_simulation}")
+print(f"Heure de debut de la simulation (minutes) : {heure_debut_simulation}") 
 print(f"Heure de fin de la simulation (minutes) : {heure_fin_simulation}") 
 print("\n--- Nombre Position par Agent---")
 print(points_par_trajet)
@@ -222,7 +180,7 @@ print(nombre_trajets_par_motif)
 print("\n--- Evolution du trafic (agents actifs par minute) ---")
 print(trafic_par_minute)    
 
-# Exporter les résultats dans un fichier CSV
+# Exporter les resultats dans un fichier CSV
 resultats = pd.DataFrame({
     'population_active': [population_active],
     'population_non_active': [population_nonactive],
@@ -232,10 +190,6 @@ resultats = pd.DataFrame({
     'total_trajets': [total_trajets],
     'min_points_par_trajet': [min_points_par_trajet],
     'max_points_par_trajet': [max_points_par_trajet],
-    'distance_totale_par_agent_moyenne': [distance_par_agent.mean()],
-    'frequence_trajets_par_agent_moyenne': [freq_trajets_par_agent.mean()],
-    'heure_debut_trajet_moyenne': [heure_debut_trajet.mean()],
-    'temps_total_arret_par_agent_moyenne': [temps_total_arret_par_agent.mean()],
     'heure_debut_simulation_minutes': [heure_debut_simulation],
     'heure_fin_simulation_minutes': [heure_fin_simulation]
 })
@@ -253,5 +207,5 @@ distribution_motifs_points.to_csv(f"distribution_motifs_points.csv", index=True)
 # Exporter la distribution trajet des motifs
 nombre_trajets_par_motif.to_csv(f"distribution_motifs_trajet.csv", index=True)
 
-# Exporter l'évolution du trafic par minute
+# Exporter l'evolution du trafic par minute
 trafic_par_minute.to_csv(f"evolution_trafic.csv", index=True)
