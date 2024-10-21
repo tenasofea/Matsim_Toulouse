@@ -23,13 +23,11 @@ def ecrire_evenements_agent(fichier_entree, agent_id, fichier_sortie):
         
         tree_sortie = ET.ElementTree(root_sortie)
         
-        # ecrire dans le fichier XML de sortie
         with open(fichier_sortie, 'wb') as f_out:
             tree_sortie.write(f_out, encoding='utf-8', xml_declaration=True)
 
 fichier_entree = "C:/Users/User/IdeaProjects/matsim-example-project-modified/simulation_output_toulouse/output_events.xml.gz"
-agent_id = "763545"  # remplacer par l'ID de l'agent souhaite
+agent_id = "763545" 
 fichier_sortie = "TrajetAllAgent.xml"
 
-# appeler la fonction pour ecrire les evenements de l'agent dans le fichier de sortie
 ecrire_evenements_agent(fichier_entree, agent_id, fichier_sortie)
